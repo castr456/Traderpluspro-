@@ -1,1 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Traderpluspro</title>
 
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: white;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: auto;
+      padding: 25px 18px;
+    }
+
+    header {
+      text-align: center;
+      padding: 30px 0;
+    }
+
+    header h1 {
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+
+    header p {
+      color: #94a3b8;
+    }
+
+    .card {
+      background: #1e293b;
+      border-radius: 18px;
+      padding: 25px;
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .connect {
+      width: 100%;
+      border: none;
+      border-radius: 12px;
+      padding: 16px;
+      background: #ff444f;
+      color: white;
+      font-size: 17px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+
+    .connect:active {
+      opacity: 0.8;
+    }
+
+    .status {
+      margin-top: 20px;
+      color: #94a3b8;
+      font-size: 14px;
+      word-break: break-word;
+    }
+
+    .warning {
+      margin-top: 25px;
+      padding: 15px;
+      background: #172033;
+      border-radius: 12px;
+      color: #94a3b8;
+      font-size: 13px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+
+    <header>
+      <h1>Traderpluspro</h1>
+      <p>Deriv Trading Dashboard</p>
+    </header>
+
+    <div class="card">
+      <h2>Connect your Deriv account</h2>
+
+      <p style="color:#94a3b8; margin-top:10px;">
+        Secure OAuth connection
+      </p>
+
+      <button class="connect" onclick="connectDeriv()">
+        Connect Deriv Account
+      </button>
+
+      <div id="status" class="status"></div>
+    </div>
+
+    <div class="warning">
+      ⚠️ Trading involves risk. This platform does not guarantee profits.
+    </div>
+
+  </div>
+
+  <script>
+    const CLIENT_ID = "33mnJDmtteunEmcfYXOwa";
+    const REDIRECT_URI =
+      "https://traderpluspro-tradin-pbyw.bolt.host";
+
+    function randomString(length = 64) {
+      const chars =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
+
+      const array = new Uint8Array(length);
+      crypto.getRandomValues(array);
+
+      return Array.from(array)
+        .map(x => chars[x % chars.length])
+        .join("");
+    }
+
+    async function createChallenge(verifier) {
+      const data = new TextEncoder().encode(verifier);
+
+      const hash = await crypto.subtle.digest(
+        "SHA-256",
+        data
+      );
+
+      return btoa(
+        String.fromCharCode(...new Uint8Array(hash))
+      )
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/, "");
+    }
+
+    async function connectDeriv() {
+
+      const status = document.getElementById("status");
+
+      try {
+
+        status.textContent =
+          "Preparing secure Deriv connection...";
+
+        const verifier = randomString();
+
+        const challenge =
+          await createChallenge(verifier);
+
+        const state = randomString(32);
+
+        sessionStorage.setItem(
+          "deriv_code_verifier",
+          verifier
+        );
+
+        sessionStorage.setItem(
+          "deriv_state",
+          state
+        );
+
+        const params = new URLSearchParams({
+          response_type: "code",
+          client_id: CLIENT_ID,
+          redirect_uri: REDIRECT_URI,
+          scope: "trade account_manage application_read payment",
+          state: state,
+          code_challenge: challenge,
+          code_challenge_method: "S256"
+        });
+
+        const authUrl =
+          "https://auth.deriv.com/oauth2/auth?" +
+          params.toString();
+
+        window.location.href = authUrl;
+
+      } catch (error) {
+
+        status.textContent =
+          "Connection error: " + error.message;
+
+      }
+    }
+
+  </script>
+
+</body>
+</html>
